@@ -19,7 +19,9 @@ class Maze:
         self._win = win
         self._cells: List[List[Cell]] = [[None for _ in range(self._num_cols)] for _ in range(self._num_rows)]
         self._create_cells()
-        self._seed = seed if seed is None else random.seed(seed)
+        self._seed = seed if seed is None else random.seed(seed ** 15)
+        self._break_entrance_and_exit()
+        self._break_walls_r(0, 0)
 
     def _create_cells(self):
         for row in range(self._num_rows):
@@ -42,7 +44,7 @@ class Maze:
         if not self._win:
             return
         self._win.redraw()
-        time.sleep(0.05)
+        time.sleep(0.01)
 
     def _break_entrance_and_exit(self):
         self._cells[0][0].has_top_wall = False
@@ -50,6 +52,7 @@ class Maze:
 
         self._cells[-1][-1].has_bottom_wall = False
         self._draw_cell(-1, -1)
+        self._animate()
 
     def _reset_cells_visited(self):
         for row in self._cells:
@@ -60,7 +63,7 @@ class Maze:
         visited = []
 
         def inner(row, column):
-            print(f"visiting {row}, {column}")
+            self._animate()
             current_cell = self._cells[row][column]
             current_cell.visited = True
             visited.append((row, column))
@@ -75,14 +78,11 @@ class Maze:
                         continue
                     to_visit[direction] = (temp_row, temp_column)
                 if len(to_visit) < 1:
-                    print("to_visit empty")
                     current_cell.draw()
                     break
                 else:
                     direction = list(to_visit.keys())[random.randrange(0, len(to_visit))]
                     (neighbor_row, neighbor_column) = to_visit[direction]
-                    print(f"directions to visit {direction}")
-                    print(f"visiting next cell {neighbor_row}, {neighbor_column}")
                     new_cell = self._cells[neighbor_row][neighbor_column]
                     match direction:
                         # right
@@ -105,3 +105,56 @@ class Maze:
 
         inner(target_row, target_column)
         self._reset_cells_visited()
+
+    def solve(self) -> bool:
+        return self.solve_r(0, 0)
+
+    @staticmethod
+    def can_move(direction, current_cell, next_cell):
+        wall_mapping = {
+            (0, 1): ("has_right_wall", "has_left_wall"),   # Right
+            (1, 0): ("has_bottom_wall", "has_top_wall"),   # Down
+            (0, -1): ("has_left_wall", "has_right_wall"),  # Left
+            (-1, 0): ("has_top_wall", "has_bottom_wall"),  # Up
+        }
+
+        current_wall, next_wall = wall_mapping.get(direction, (None, None))
+
+        if current_wall and getattr(current_cell, current_wall):
+            print(f"Blocked: current cell has {current_wall.replace('_', ' ')}.")
+            return False
+
+        if next_wall and getattr(next_cell, next_wall):
+            print(f"Blocked: next cell has {next_wall.replace('_', ' ')}.")
+            return False
+
+        print("Move allowed.")
+        return True
+
+    def solve_r(self, row, column) -> bool:
+        self._animate()
+        current_cell = self._cells[row][column]
+        current_cell.visited = True
+
+        if row == self._num_rows - 1 and column == self._num_cols - 1:
+            return True
+
+        for direction in _directions:
+            next_cell_row, next_cell_column = row + direction[0], column + direction[1]
+            if min(next_cell_row, next_cell_column) < 0 or next_cell_row >= self._num_rows or next_cell_column >= self._num_cols:
+                continue
+
+            next_cell = self._cells[next_cell_row][next_cell_column]
+            if next_cell.visited:
+                continue
+
+            if self.can_move(direction, current_cell, next_cell):
+                current_cell.draw_move(next_cell)
+                self._animate()
+                if self.solve_r(next_cell_row, next_cell_column):
+                    return True
+                else:
+                    current_cell.draw_move(next_cell, True)
+                    self._animate()
+        return False
+
