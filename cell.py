@@ -12,6 +12,7 @@ class Cell:
         self._x2 = x2
         self._y2 = y2
         self._window = window
+        self.visited = False
         self.has_left_wall = True
         self.has_right_wall = True
         self.has_top_wall = True
