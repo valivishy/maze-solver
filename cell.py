@@ -6,7 +6,7 @@ _default_distance_from_center_to_margin = 50
 
 
 class Cell:
-    def __init__(self, x1: int, y1: int, x2: int, y2: int, window: Window):
+    def __init__(self, x1: int, y1: int, x2: int, y2: int, window: Window = None):
         self._x1 = x1
         self._y1 = y1
         self._x2 = x2
@@ -37,18 +37,12 @@ class Cell:
                 f"walls={'none' if not walls else ', '.join(walls)})")
 
     def draw(self):
-        if self.has_top_wall:  # Horizontal top wall
-            self._draw_line(self._x1, self._y1, self._x2, self._y1)
-        if self.has_bottom_wall:  # Horizontal bottom wall
-            self._draw_line(self._x1, self._y2, self._x2, self._y2)
-        if self.has_left_wall:  # Vertical left wall
-            self._draw_line(self._x1, self._y1, self._x1, self._y2)
-        if self.has_right_wall:  # Vertical right wall
-            self._draw_line(self._x2, self._y1, self._x2, self._y2)
+        self._draw_line(self._x1, self._y1, self._x2, self._y1, self.has_top_wall)
+        self._draw_line(self._x1, self._y2, self._x2, self._y2, self.has_bottom_wall)
+        self._draw_line(self._x1, self._y1, self._x1, self._y2, self.has_left_wall)
+        self._draw_line(self._x2, self._y1, self._x2, self._y2, self.has_right_wall)
 
     def draw_move(self, to_cell, undo=False):
-        print(self)
-        print(to_cell)
         self_center = self.center
         other_center = to_cell.center
         self._window.draw_line(
@@ -59,5 +53,6 @@ class Cell:
             "gray" if undo else "red"
         )
 
-    def _draw_line(self, x1: int, y1: int, x2: int, y2: int):
-        self._window.draw_line(Line(Point(x1, y1), Point(x2, y2)), "black")
+    def _draw_line(self, x1: int, y1: int, x2: int, y2: int, wall_exists: bool = True):
+        if self._window:
+            self._window.draw_line(Line(Point(x1, y1), Point(x2, y2)), 'black' if wall_exists else 'white')
